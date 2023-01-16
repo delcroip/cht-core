@@ -16,6 +16,7 @@ describe('Submit Default Delivery Report', () => {
   before(async () => {
     await utils.saveDocs(docs);
     await deliveryReport.configureForm(userContactDoc);
+    await sentinelUtils.waitForSentinel();
     await loginPage.cookieLogin();
     await common.hideSnackbar();
   });
