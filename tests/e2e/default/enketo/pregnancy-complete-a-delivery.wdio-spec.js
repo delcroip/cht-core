@@ -134,6 +134,7 @@ describe('Contact Delivery Form', () => {
     await deliveryForm.selectDeliveryPncVisits('none');
     await genericForm.nextPage();
     await deliveryForm.submitForm();
+    await sentinelUtils.waitForSentinel();
     await contactPage.openReport();
     await (await reportPage.reportBodyDetails()).waitForDisplayed();
     expect((await reportPage.getReportSubject())).to.equal(MOTHERS_NAME);
