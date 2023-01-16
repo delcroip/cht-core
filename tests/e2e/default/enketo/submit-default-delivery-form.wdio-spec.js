@@ -77,6 +77,7 @@ describe('Submit Default Delivery Report', () => {
     const reportId = await reportsPage.getCurrentReportId();
     const initialReport = await utils.getDoc(reportId);
     expect(initialReport._attachments).to.equal(undefined);
+    console.log(JSON.stringify(initialReport, null, 2));
 
     // Verify dead babies UUIDs are unique
     const deadBabyUUIds = [];
