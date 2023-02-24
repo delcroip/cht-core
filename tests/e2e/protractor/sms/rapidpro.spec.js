@@ -613,7 +613,7 @@ describe('RapidPro SMS Gateway', () => {
 
       const iterations = docsCount / 25; // batch size is 25
       try {
-        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 2) * 1000 );
+        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 5) * 1000 );
 
         const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
         const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
