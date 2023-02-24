@@ -612,15 +612,21 @@ describe('RapidPro SMS Gateway', () => {
       await utils.saveDocs(docs);
 
       const iterations = docsCount / 25; // batch size is 25
-      await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 2) * 1000 );
+      try {
+        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 2) * 1000 );
 
-      const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
-      const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
-      expect(queriedBroadcasts).toEqual(expectedBroadcasts);
+        const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
+        const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
+        expect(queriedBroadcasts).toEqual(expectedBroadcasts);
 
-      await browser.sleep(1100); // wait for another polling iteration
+        await browser.sleep(1100); // wait for another polling iteration
 
-      expect(messagesEndpointRequests.length).toEqual(docsCount); // no additional requests were made
+        expect(messagesEndpointRequests.length).toEqual(docsCount); // no additional requests were made
+      } catch (err) {
+        console.log(JSON.stringify(messagesEndpointRequests, null, 2));
+        throw err;
+      }
+
 
       const updatedDocs = await utils.getDocs(docs.map(doc => doc._id));
       updatedDocs.forEach(doc => {
