@@ -623,7 +623,11 @@ describe('RapidPro SMS Gateway', () => {
 
         expect(messagesEndpointRequests.length).toEqual(docsCount); // no additional requests were made
       } catch (err) {
-        console.log(JSON.stringify(messagesEndpointRequests, null, 2));
+        // console.log(JSON.stringify(messagesEndpointRequests, null, 2));
+        const queriedGatewayRefs = messagesEndpointRequests.map(ref => ref[0].broadcast);
+        const missingRefs = docs.find(doc => !queriedGatewayRefs.includes(doc.tasks[0].gateway_ref));
+        const serverDocs = await utils.getDoc(missingRefs.map(doc => doc._id));
+        console.log(JSON.stringify(serverDocs, null, 2));
         throw err;
       }
 
