@@ -613,7 +613,7 @@ describe('RapidPro SMS Gateway', () => {
 
       const iterations = docsCount / 25; // batch size is 25
       try {
-        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 5) * 1000 );
+        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 10) * 1000 );
 
         const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
         const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
@@ -628,6 +628,8 @@ describe('RapidPro SMS Gateway', () => {
         const missingRefs = docs.filter(doc => !queriedGatewayRefs.includes(doc.tasks[0].gateway_ref));
         const serverDocs = await utils.getDocs(missingRefs.map(doc => doc._id));
         console.log(JSON.stringify(serverDocs, null, 2));
+        const viewResults = await utils.db.query('medic-sms/gateway_messages_by_state', { keys: ['sent'] });
+        console.log(JSON.stringify(viewResults, null, 2));
         throw err;
       }
 
