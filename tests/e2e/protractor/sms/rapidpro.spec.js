@@ -612,26 +612,16 @@ describe('RapidPro SMS Gateway', () => {
       await utils.saveDocs(docs);
 
       const iterations = docsCount / 25; // batch size is 25
-      try {
-        await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 10) * 1000 );
+      // increased number of wait time after Couch3 upgrade
+      await browser.wait(() => messagesEndpointRequests.length === docsCount, (iterations + 10) * 1000 );
 
-        const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
-        const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
-        expect(queriedBroadcasts).toEqual(expectedBroadcasts);
+      const queriedBroadcasts = messagesEndpointRequests.map(request => request[0].broadcast).sort();
+      const expectedBroadcasts = docs.map(doc => doc.tasks[0].gateway_ref).sort();
+      expect(queriedBroadcasts).toEqual(expectedBroadcasts);
 
-        await browser.sleep(1100); // wait for another polling iteration
+      await browser.sleep(1100); // wait for another polling iteration
 
-        expect(messagesEndpointRequests.length).toEqual(docsCount); // no additional requests were made
-      } catch (err) {
-        // console.log(JSON.stringify(messagesEndpointRequests, null, 2));
-        const queriedGatewayRefs = messagesEndpointRequests.map(ref => ref[0].broadcast);
-        const missingRefs = docs.filter(doc => !queriedGatewayRefs.includes(doc.tasks[0].gateway_ref));
-        const serverDocs = await utils.getDocs(missingRefs.map(doc => doc._id));
-        console.log(JSON.stringify(serverDocs, null, 2));
-        const viewResults = await utils.db.query('medic-sms/gateway_messages_by_state', { keys: ['sent'] });
-        console.log(JSON.stringify(viewResults, null, 2));
-        throw err;
-      }
+      expect(messagesEndpointRequests.length).toEqual(docsCount); // no additional requests were made
 
 
       const updatedDocs = await utils.getDocs(docs.map(doc => doc._id));
