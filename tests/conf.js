@@ -67,7 +67,7 @@ const baseConfig = {
   },
   afterLaunch: async () => {
     await utils.endSession();
-    return retry.afterLaunch(NUMBER_OF_RETRIES);
+    //return retry.afterLaunch(NUMBER_OF_RETRIES);
   },
   onPrepare: async () => {
     retry.onPrepare();
