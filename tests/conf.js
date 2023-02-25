@@ -7,7 +7,7 @@ chai.use(require('chai-shallow-deep-equal'));
 chai.config.truncateThreshold = 0;
 chai.use(require('chai-exclude'));
 
-const NUMBER_OF_RETRIES = 5;
+// const NUMBER_OF_RETRIES = 5;
 
 const baseConfig = {
   params:{
