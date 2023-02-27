@@ -663,7 +663,7 @@ describe('RapidPro SMS Gateway', () => {
       expect(messagesEndpointRequests.length).toBeLessThan(16); // maximum 4 polling iterations
       let updatedDocs = await utils.getDocs(docs.map(doc => doc._id));
       let docsWithUpdatedMessages = updatedDocs.filter(doc => doc.tasks[0].state === 'delivered');
-      expect(docsWithUpdatedMessages.length).toEqual(10);
+      expect(docsWithUpdatedMessages.length).toEqual(20);
 
       const requestsAfterFirstPass = messagesEndpointRequests.length;
 
