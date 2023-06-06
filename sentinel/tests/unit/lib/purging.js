@@ -336,7 +336,7 @@ describe('ServerSidePurge', () => {
       });
     });
 
-    it('should add new purges and remove old purges', () => {
+    it('should add all purges and remove misssing purges', () => {
       const roles = ['a', 'b'];
       const ids = ['1', '2', '3', '4'];
       const currentlyPurged = {
@@ -364,12 +364,14 @@ describe('ServerSidePurge', () => {
       return service.__get__('updatePurgedDocs')(roles, ids, currentlyPurged, newPurged).then(() => {
         chai.expect(purgeDbBulkDocs.callCount).to.equal(2);
         chai.expect(purgeDbBulkDocs.args[0]).to.deep.equal([{ docs: [
+          { _id: 'purged:1', _rev: '1-rev' },
           { _id: 'purged:2' },
-          { _id: 'purged:3', _rev: '3-rev', _deleted: true }
+          { _id: 'purged:3', _rev: '3-rev', _deleted: true },
         ]}]);
         chai.expect(purgeDbBulkDocs.args[1]).to.deep.equal([{ docs: [
           { _id: 'purged:1' },
-          { _id: 'purged:2', _rev: '2-rev', _deleted: true }
+          { _id: 'purged:2', _rev: '2-rev', _deleted: true },
+          { _id: 'purged:4', _rev: '4-rev' },
         ]}]);
       });
     });
@@ -390,10 +392,15 @@ describe('ServerSidePurge', () => {
       };
 
       return service.__get__('updatePurgedDocs')(roles, ids, currentlyPurged, newPurged).then(() => {
-        chai.expect(purgeDbBulkDocs.callCount).to.equal(1);
+        chai.expect(purgeDbBulkDocs.callCount).to.equal(2);
         chai.expect(purgeDbBulkDocs.args[0]).to.deep.equal([{ docs: [
+          { _id: 'purged:1', _rev: '1' },
           { _id: 'purged:2' },
-          { _id: 'purged:3', _rev: '3', _deleted: true }
+          { _id: 'purged:3', _rev: '3', _deleted: true },
+        ]}]);
+        chai.expect(purgeDbBulkDocs.args[1]).to.deep.equal([{ docs: [
+          { _id: 'purged:2', _rev: '2' },
+          { _id: 'purged:4', _rev: '4' },
         ]}]);
       });
     });
@@ -915,7 +922,7 @@ describe('ServerSidePurge', () => {
         }]);
 
         // mock chtScriptApi
-        
+
 
         chai.expect(purgeFn.callCount).to.equal(8);
         chai.expect(purgeFn.args[0]).to.shallowDeepEqual([
@@ -926,7 +933,7 @@ describe('ServerSidePurge', () => {
         ]);
         // expect the fifth argument to be an object with the expected functions
         chai.expect(purgeFn.args[0][4]).to.have.keys('v1');
-        
+
         chai.expect(purgeFn.args[1]).to.shallowDeepEqual([
           { roles:roles.b },
           { _id: 'first', type: 'district_hospital' },
@@ -1427,6 +1434,7 @@ describe('ServerSidePurge', () => {
         chai.expect(dbB.bulkDocs.callCount).to.equal(1);
         chai.expect(dbB.bulkDocs.args[0]).to.deep.equalInAnyOrder([{ docs: [
           { _id: 'purged:f1-r1' },
+          { _id: 'purged:f1-m1', _rev: '1' },
           { _id: 'purged:f2-m1', _deleted: true, _rev: '2' },
           { _id: 'purged:f2-r1' },
         ]}]);
@@ -1702,7 +1710,7 @@ describe('ServerSidePurge', () => {
       return service.__get__('purgeContacts')(roles, purgeFn).catch(err => {
         chai.expect(db.queryMedic.callCount).to.equal(1);
         chai.expect(db.medic.query.callCount).to.equal(1);
-        chai.expect(purgeDbChanges.callCount).to.equal(2);
+        chai.expect(purgeDbChanges.callCount).to.equal(0);
         chai.expect(err.message).to.deep.equal('error');
       });
     });
@@ -1887,6 +1895,7 @@ describe('ServerSidePurge', () => {
         chai.expect(dbA.bulkDocs.callCount).to.equal(1);
         chai.expect(dbA.bulkDocs.args[0]).to.deep.equal([{ docs: [
           { _id: 'purged:r1', _rev: 'r1-rev', _deleted: true },
+          { _id: 'purged:r2', _rev: 'r2-rev' },
           { _id: 'purged:r3' },
           { _id: 'purged:r5' },
         ]}]);
@@ -1894,6 +1903,7 @@ describe('ServerSidePurge', () => {
         chai.expect(dbB.bulkDocs.args[0]).to.deep.equal([{ docs: [
           { _id: 'purged:r2', _rev: 'r2-rev', _deleted: true },
           { _id: 'purged:r3' },
+          { _id: 'purged:r4', _rev: 'r4-rev' },
           { _id: 'purged:r6' },
         ]}]);
       });
@@ -1932,7 +1942,10 @@ describe('ServerSidePurge', () => {
         chai.expect(db.queryMedic.callCount).to.equal(2);
         chai.expect(purgeFn.callCount).to.equal(4);
         chai.expect(dbA.bulkDocs.callCount).to.equal(1);
-        chai.expect(dbA.bulkDocs.args[0]).to.deep.equal([{ docs: [ { _id: 'purged:r2' }]}]);
+        chai.expect(dbA.bulkDocs.args[0]).to.deep.equal([{ docs: [
+          {_id: 'purged:r1', _rev: 'r1-rev' },
+          { _id: 'purged:r2' },
+        ]}]);
         chai.expect(dbB.bulkDocs.callCount).to.equal(0);
       });
     });
@@ -2155,8 +2168,10 @@ describe('ServerSidePurge', () => {
         chai.expect(dbB.bulkDocs.callCount).to.equal(1);
         chai.expect(dbB.bulkDocs.args[0]).to.deep.equal([{ docs: [
           { _id: 'purged:t1' },
+          { _id: 'purged:t2', _rev: 't2-rev' },
           { _id: 'purged:t3' },
           { _id: 'purged:t4' },
+          { _id: 'purged:t5', _rev: 't5-rev' },
           { _id: 'purged:t6' },
         ]}]);
       });
@@ -2325,6 +2340,9 @@ describe('ServerSidePurge', () => {
         ]}]);
         chai.expect(dbB.bulkDocs.callCount).to.equal(1);
         chai.expect(dbB.bulkDocs.args[0]).to.deep.equal([{ docs: [
+          { _id: 'purged:target~2019~03~user1', _rev: 't2-rev' },
+          { _id: 'purged:target~2019~03~user2', _rev: 't5-rev' },
+          { _id: 'purged:target~2019~03~user3', _rev: 't5-rev' },
           { _id: 'purged:target~2019~04~user1' },
           { _id: 'purged:target~2019~04~user2' },
           { _id: 'purged:target~2019~04~user3' },

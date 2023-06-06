@@ -113,7 +113,8 @@ const getAlreadyPurgedDocs = (roleHashes, ids) => {
   const changesOpts = {
     doc_ids: purgeIds,
     batch_size: purgeIds.length + 1,
-    seq_interval: purgeIds.length
+    seq_interval: purgeIds.length,
+    include_docs: true,
   };
 
   // requesting _changes instead of _all_docs because it's roughly twice faster
@@ -124,7 +125,10 @@ const getAlreadyPurgedDocs = (roleHashes, ids) => {
         const hash = roleHashes[idx];
         result.results.forEach(change => {
           if (!change.deleted) {
-            purged[hash][serverSidePurgeUtils.extractId(change.id)] = change.changes[0].rev;
+            purged[hash][serverSidePurgeUtils.extractId(change.id)] = {
+              rev: change.changes[0].rev,
+              docRev: change.doc.rev,
+            };
           }
         });
       });
@@ -155,7 +159,20 @@ const getPurgeFn = () => {
   return purgeFn;
 };
 
-const updatePurgedDocs = (rolesHashes, ids, alreadyPurged, toPurge) => {
+const getRevs = idsToPurge => {
+  const ids = [];
+  Object.keys(idsToPurge).forEach(hash => ids.push(...Object.keys(idsToPurge[hash])));
+
+  return db.medic
+    .allDocs({ keys: ids })
+    .then(results => {
+      const docIdsRevs = {};
+      results.rows.forEach(row => docIdsRevs[row.id] = row.value && row.value.rev);
+      return docIdsRevs;
+    });
+};
+
+const updatePurgedDocs = (rolesHashes, ids, alreadyPurged, toPurge, toPurgeRevs) => {
   const docs = {};
 
   ids.forEach(id => {
@@ -165,15 +182,13 @@ const updatePurgedDocs = (rolesHashes, ids, alreadyPurged, toPurge) => {
       const isPurged = alreadyPurged[hash][id];
       const shouldPurge = toPurge[hash][id];
 
-      // do nothing if purge state is unchanged
-      if (!!isPurged === !!shouldPurge) {
-        return;
+      if (isPurged && !shouldPurge) {
+        docs[hash].push({ _id: serverSidePurgeUtils.getPurgedId(id), _rev: isPurged.rev, _deleted: true });
       }
-
-      if (isPurged) {
-        docs[hash].push({ _id: serverSidePurgeUtils.getPurgedId(id), _rev: isPurged, _deleted: true });
-      } else {
-        docs[hash].push({ _id: serverSidePurgeUtils.getPurgedId(id) });
+      if (shouldPurge && (!isPurged || isPurged && toPurgeRevs[id] !== isPurged.docRev)) {
+        const doc = { _id: serverSidePurgeUtils.getPurgedId(id), rev: toPurgeRevs[id] };
+        isPurged && (doc._rev = isPurged.rev);
+        docs[hash].push(doc);
       }
     });
   });
@@ -396,6 +411,7 @@ const batchedContactsPurge = (roles, purgeFn, startKey = '', startKeyDocId = '')
   const subjectIds = [];
   const rolesHashes = Object.keys(roles);
   let docIds;
+  let toPurge;
 
   logger.info(
     `Purging: Starting contacts batch: key "${startKey}", doc id "${startKeyDocId}", batch size ${contactsBatchSize}`
@@ -429,12 +445,13 @@ const batchedContactsPurge = (roles, purgeFn, startKey = '', startKeyDocId = '')
     .then(() => getRecordsForContacts(groups, subjectIds))
     .then(() => {
       docIds = getIdsFromGroups(groups);
-      return getAlreadyPurgedDocs(rolesHashes, docIds);
+      toPurge = getDocsToPurge(purgeFn, groups, roles);
+      return Promise.all([
+        getAlreadyPurgedDocs(rolesHashes, docIds, toPurge),
+        getRevs(toPurge),
+      ]);
     })
-    .then(alreadyPurged => {
-      const toPurge = getDocsToPurge(purgeFn, groups, roles);
-      return updatePurgedDocs(rolesHashes, docIds, alreadyPurged, toPurge);
-    })
+    .then(([alreadyPurged, toPurgeRevs]) => updatePurgedDocs(rolesHashes, docIds, alreadyPurged, toPurge, toPurgeRevs))
     .then(() => ({ nextKey, nextKeyDocId, nextBatch }))
     .catch(err => {
       if (err && err.code === MAX_BATCH_SIZE_REACHED) {
