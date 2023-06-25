@@ -17,7 +17,7 @@ const ALLURE_OUTPUT = 'allure-results';
 const browserLogPath = path.join('tests', 'logs', 'browser.console.log');
 const logLevels = ['error', 'warning', 'debug'];
 const DEBUG_TEST = process.env.DEBUG_TEST;
-const DEFAULT_TIMEOUT = 12 * 1000;
+const DEFAULT_TIMEOUT = 12000;
 const DEBUG_TIMEOUT = 24 * 60 * 60 * 1000; //timeout in debug mode, allows more interaction with browser after test
 
 const existingFeedBackDocIds = [];
