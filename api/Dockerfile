@@ -4,7 +4,7 @@ COPY ./ ./
 RUN npm install 
 RUN npm ci 
 RUN npm install -g grunt-cli
-ARG 
+ 
 RUN  node --stack_size=10000 `which grunt` build-dev
 
 FROM alpine:3.15 AS base_build
